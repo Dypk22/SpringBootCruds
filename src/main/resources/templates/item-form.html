@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Item Form</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#itemForm').submit(function (event) {
+                event.preventDefault(); // Prevent the default form submission
+
+                $.ajax({
+                    url: '/ajax/add',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        name: $('#name').val(),
+                        description: $('#description').val(),
+                        price: $('#price').val()
+                    }),
+                    success: function (data) {
+                        alert('Item added successfully!');
+                        $('#itemList').append('<li>' + data.name + ': ' + data.description + ' - $' + data.price + '</li>');
+                        $('#itemForm')[0].reset(); // Clear the form fields
+						displayProducts(data.products);
+                    },
+                    error: function (xhr, status, error) {
+                        alert('An error occurred: ' + error);
+                    }
+                });
+            });
+
+			// Function to display products
+			function displayProducts(products) {
+			    const productContainer = document.getElementById('itemList');
+			    productContainer.innerHTML = '';
+
+			    products.forEach(product => {
+			        const productElement = document.createElement('div');
+					productElement.innerHTML = `
+					                Name: ${product.name}, Description: ${product.description}, Price: ${product.price}
+					                <button onclick="deleteProduct(${product.id})">Delete</button>
+					            `;
+			        productContainer.appendChild(productElement);
+			    });
+			}
+			
+			// Function to delete a product
+			    window.deleteProduct = function(id) {
+			        fetch(`/ajax/${id}`, {
+			            method: 'DELETE',
+			        })
+			        .then(response => response.json())
+			        .then(data => {
+			            if (data.status) {
+			                alert('Product deleted successfully: ' + data.message);
+			                displayProducts(data.products);
+			            } else {
+			                alert('Failed to delete product.');
+			            }
+			        })
+			        .catch((error) => {
+			            console.error('Error:', error);
+			        });
+			    };
+				
+				// Optionally load existing items on page load
+				            $.ajax({
+				                url: '/items/list',
+				                method: 'GET',
+				                success: function (data) {
+				                    displayProducts(data); // Update product list
+				                },
+				                error: function (xhr, status, error) {
+				                    alert('An error occurred while loading items: ' + error);
+				                }
+				            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Item Form</h1>
+    <form id="itemForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br>
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" required></textarea><br>
+        <label for="price">Price:</label>
+        <input type="number" id="price" name="price" step="0.01" required><br>
+        <button type="submit">Submit</button>
+    </form>
+
+    <h2>Item List</h2>
+    <ul id="itemList">
+        <!-- Existing items will be appended here -->
+    </ul>
+</body>
+</html>
